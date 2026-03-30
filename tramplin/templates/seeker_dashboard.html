@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой профиль - Трамплин</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .sidebar { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); min-height: 100vh; color: white; border-radius: 0 20px 20px 0; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 5px 0; border-radius: 10px; transition: all 0.3s; }
+        .sidebar .nav-link:hover { background: rgba(255,255,255,0.1); color: white; transform: translateX(5px); }
+        .sidebar .nav-link.active { background: rgba(255,255,255,0.2); color: white; }
+        .sidebar .nav-link i { width: 25px; margin-right: 10px; }
+        .avatar { width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; }
+        .avatar i { font-size: 3rem; }
+        .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px 15px 0 0 !important; padding: 15px 20px; }
+        .response-item { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; cursor: pointer; border: 1px solid #e0e0e0; transition: all 0.3s; }
+        .response-item:hover { transform: translateX(5px); border-color: #667eea; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .badge-status { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-accepted { background: #d4edda; color: #155724; }
+        .badge-rejected { background: #f8d7da; color: #721c24; }
+        .badge-reserve { background: #cce5ff; color: #004085; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+        .skill-tag { display: inline-block; padding: 5px 12px; background: #e3f2fd; color: #1976d2; border-radius: 20px; font-size: 0.85rem; margin-right: 8px; margin-bottom: 8px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        .seeker-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; height: 100%; transition: transform 0.2s; }
+        .seeker-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2rem; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        @media (max-width: 768px) { .sidebar { min-height: auto; border-radius: 0; } }
+        .conversation-item { cursor: pointer; transition: background 0.2s; }
+        .conversation-item:hover { background: #f8f9fa; }
+        .chat-message { max-width: 70%; word-wrap: break-word; }
+        .chat-message-mine { background: #667eea; color: white; border-radius: 18px 18px 4px 18px; }
+        .chat-message-other { background: #e9ecef; color: #333; border-radius: 18px 18px 18px 4px; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Боковое меню -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="text-center py-4">
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                    <h5>{{ profile.full_name or user.username }}</h5>
+                    <p class="small text-white-50">{{ profile.university or 'Соискатель' }}</p>
+                </div>
+                <nav class="nav flex-column px-3">
+    <a class="nav-link active" href="#" onclick="showSection('profile')"><i class="fas fa-user"></i> Мой профиль</a>
+    <a class="nav-link" href="#" onclick="showSection('responses')"><i class="fas fa-paper-plane"></i> Мои отклики {% if responses %}<span class="badge bg-danger float-end">{{ responses|length }}</span>{% endif %}</a>
+    <a class="nav-link" href="#" onclick="showSection('favorites')"><i class="fas fa-heart"></i> Избранное {% if favorites %}<span class="badge bg-danger float-end">{{ favorites|length }}</span>{% endif %}</a>
+    <a class="nav-link" href="#" onclick="showSection('network')"><i class="fas fa-users"></i> Контакты <span id="pendingRequestsBadge" class="badge bg-danger float-end" style="display: none;"></span></a>
+    <a class="nav-link" href="#" onclick="showSection('notifications')"><i class="fas fa-bell"></i> Уведомления <span id="notificationsBadge" class="badge bg-danger float-end" style="display: none;"></span></a>
+    <a class="nav-link" href="#" onclick="showSection('chats')"><i class="fas fa-comments"></i> Сообщения <span id="unreadChatBadge" class="badge bg-danger float-end" style="display: none;"></span></a>
+    <a class="nav-link" href="#" onclick="showSection('events')"><i class="fas fa-calendar-alt"></i> Мероприятия</a>
+    <a class="nav-link" href="#" onclick="showSection('privacy')"><i class="fas fa-lock"></i> Приватность</a>
+    <hr class="bg-light my-3">
+    <a class="nav-link" href="/"><i class="fas fa-home"></i> На главную</a>
+    <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+</nav>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="col-md-9 col-lg-10 p-4">
+                <!-- Секция профиля -->
+                <div id="profileSection">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="text-white"><i class="fas fa-user me-2"></i>Мой профиль</h2>
+                        <button class="btn btn-primary" onclick="openEditModal()"><i class="fas fa-edit me-2"></i>Редактировать</button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header"><i class="fas fa-info-circle me-2"></i>Основная информация</div>
+                                <div class="card-body">
+                                    <p><strong>ФИО:</strong> {{ profile.full_name or 'Не указано' }}</p>
+                                    <p><strong>Email:</strong> {{ user.email }}</p>
+                                    <p><strong>Университет:</strong> {{ profile.university or 'Не указан' }}</p>
+                                    <p><strong>Курс:</strong> {{ profile.course or 'Не указан' }}</p>
+                                    <p><strong>Год выпуска:</strong> {{ profile.graduation_year or 'Не указан' }}</p>
+                                    {% if profile.phone %}<p><strong>Телефон:</strong> {{ profile.phone }}</p>{% endif %}
+                                    {% if profile.github %}<p><strong>GitHub:</strong> <a href="{{ profile.github }}" target="_blank">{{ profile.github }}</a></p>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header"><i class="fas fa-align-left me-2"></i>О себе</div>
+                                <div class="card-body"><p>{{ profile.about or 'Информация не заполнена' }}</p></div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><i class="fas fa-code me-2"></i>Навыки</div>
+                                <div class="card-body">
+                                    {% set skills = profile.skills|from_json %}
+                                    {% if skills %}{% for skill in skills %}<span class="skill-tag">{{ skill }}</span>{% endfor %}{% else %}<p class="text-muted">Навыки не добавлены</p>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Секция откликов -->
+                <div id="responsesSection" style="display: none;">
+                    <h2 class="text-white mb-4"><i class="fas fa-paper-plane me-2"></i>Мои отклики</h2>
+                    {% if responses %}{% for response in responses %}
+                    <div class="response-item" onclick="location.href='/opportunity/{{ response.opportunity_id }}'">
+                        <h5>{{ response.opportunity.title }}</h5>
+                        <p class="text-muted">{{ response.opportunity.employer.company_name }}</p>
+                        <span class="badge-status badge-{{ response.status.value|lower|replace(' ', '') }}">{{ response.status.value }}</span>
+                    </div>
+                    {% endfor %}{% else %}
+                    <div class="alert alert-info">У вас пока нет откликов.</div>{% endif %}
+                </div>
+
+                <!-- Секция избранного -->
+                <div id="favoritesSection" style="display: none;">
+                    <h2 class="text-white mb-4"><i class="fas fa-heart me-2"></i>Избранное</h2>
+                    {% if favorites %}{% for fav in favorites %}
+                    <div class="response-item" onclick="location.href='/opportunity/{{ fav.opportunity_id }}'">
+                        <div class="d-flex justify-content-between"><div><h5>{{ fav.opportunity.title }}</h5><p>{{ fav.opportunity.employer.company_name }}</p></div><button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); removeFavorite({{ fav.opportunity_id }})">Удалить</button></div>
+                    </div>
+                    {% endfor %}{% else %}
+                    <div class="alert alert-info">Нет избранных вакансий.</div>{% endif %}
+                </div>
+
+                <!-- Секция Контакты -->
+                <div id="networkSection" style="display: none;">
+                    <h2 class="text-white mb-4"><i class="fas fa-users me-2"></i>Контакты</h2>
+                    <ul class="nav nav-tabs mb-4">
+                        <li class="nav-item"><button class="nav-link active" onclick="switchNetworkTab('search')">Поиск</button></li>
+                        <li class="nav-item"><button class="nav-link" onclick="switchNetworkTab('requests')">Запросы <span id="requestsTabBadge" class="badge bg-danger ms-1" style="display:none"></span></button></li>
+                        <li class="nav-item"><button class="nav-link" onclick="switchNetworkTab('contacts')">Мои контакты <span id="contactsCount" class="badge bg-secondary ms-1">0</span></button></li>
+                    </ul>
+                    
+                    <div id="searchTab">
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="searchName" placeholder="Имя">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="searchSkills" placeholder="Навыки (через запятую)">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="text" class="form-control" id="searchUniversity" placeholder="Университет">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button class="btn btn-primary w-100" onclick="searchSeekers()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <button class="btn btn-sm btn-outline-light" onclick="showAllSeekers()">
+                                            <i class="fas fa-users"></i> Показать всех
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="searchResults" class="row">
+                            <div class="col-12 text-center text-white-50 py-5">
+                                <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                                <p>Загрузка пользователей...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="requestsTab" style="display:none;">
+                        <div id="requestsList" class="row"></div>
+                    </div>
+                    
+                    <div id="contactsTab" style="display:none;">
+                        <div id="contactsList" class="row"></div>
+                    </div>
+                </div>
+
+                <!-- Секция уведомлений -->
+                <div id="notificationsSection" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4"><h2 class="text-white"><i class="fas fa-bell me-2"></i>Уведомления</h2><button class="btn btn-sm btn-outline-light" onclick="markAllNotificationsRead()">Отметить все</button></div>
+                    <div id="notificationsList" class="card"><div class="card-body text-center">Загрузка...</div></div>
+                </div>
+
+                <!-- Секция чата -->
+                <div id="chatsSection" style="display: none;" class="fade-in">
+                    <h2 class="text-white mb-4"><i class="fas fa-comments me-2"></i>Сообщения</h2>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header"><i class="fas fa-users me-2"></i>Диалоги</div>
+                                <div class="card-body p-0" id="conversationsList" style="max-height: 500px; overflow-y: auto;">
+                                    <div class="text-center p-4 text-muted">Загрузка...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header" id="chatHeader"><i class="fas fa-comment me-2"></i>Выберите диалог</div>
+                                <div class="card-body" id="chatMessages" style="height: 400px; overflow-y: auto;">
+                                    <div class="text-center p-5 text-muted">
+                                        <i class="fas fa-comments fa-3x mb-3"></i>
+                                        <p>Выберите диалог слева, чтобы начать общение</p>
+                                    </div>
+                                </div>
+                                <div class="card-footer" id="chatInput" style="display: none;">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="messageText" placeholder="Введите сообщение...">
+                                        <button class="btn btn-primary" onclick="sendMessage()"><i class="fas fa-paper-plane"></i> Отправить</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Секция мероприятий -->
+                <div id="eventsSection" style="display: none;">
+                    <h2 class="text-white mb-4"><i class="fas fa-calendar-alt me-2"></i>Мероприятия</h2>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3"><input type="date" class="form-control" id="eventStartDate" placeholder="От"></div>
+                                <div class="col-md-3"><input type="date" class="form-control" id="eventEndDate" placeholder="До"></div>
+                                <div class="col-md-3"><select class="form-select" id="eventTypeFilter"><option value="">Все типы</option><option value="webinar">Вебинар</option><option value="meetup">Встреча</option><option value="hackathon">Хакатон</option><option value="career_day">День карьеры</option></select></div>
+                                <div class="col-md-3"><button class="btn btn-primary w-100" onclick="loadEvents()">Найти</button></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" id="eventsList"><div class="col-12 text-center text-white-50 py-5">Загрузка...</div></div>
+                </div>
+
+                <!-- Секция приватности -->
+                <div id="privacySection" style="display: none;">
+                    <h2 class="text-white mb-4"><i class="fas fa-lock me-2"></i>Настройки приватности</h2>
+                    <div class="card"><div class="card-body"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="showProfileSwitch" {% set privacy = profile.privacy_settings|from_json %}{% if privacy.show_profile %}checked{% endif %}><label class="form-check-label"><i class="fas fa-eye me-2"></i> Показывать мой профиль другим пользователям</label></div><p class="text-muted mt-3 small">Если выключить эту опцию, другие пользователи не смогут видеть вашу информацию.</p><button class="btn btn-primary mt-3" onclick="savePrivacy()"><i class="fas fa-save me-2"></i>Сохранить</button><div id="privacyMessage" class="mt-2" style="display: none;"></div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5>Редактировать профиль</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="editForm"><div class="mb-3"><label>ФИО</label><input type="text" class="form-control" id="editFullName" value="{{ profile.full_name }}"></div><div class="mb-3"><label>Университет</label><input type="text" class="form-control" id="editUniversity" value="{{ profile.university }}"></div><div class="mb-3"><label>Курс</label><input type="text" class="form-control" id="editCourse" value="{{ profile.course }}"></div><div class="mb-3"><label>Год выпуска</label><input type="number" class="form-control" id="editGraduationYear" value="{{ profile.graduation_year }}"></div><div class="mb-3"><label>Телефон</label><input type="tel" class="form-control" id="editPhone" value="{{ profile.phone }}"></div><div class="mb-3"><label>GitHub</label><input type="url" class="form-control" id="editGithub" value="{{ profile.github }}"></div><div class="mb-3"><label>Навыки (через запятую)</label><input type="text" class="form-control" id="editSkills" value="{% set skills = profile.skills|from_json %}{{ skills|join(', ') }}"></div><div class="mb-3"><label>О себе</label><textarea class="form-control" id="editAbout" rows="4">{{ profile.about }}</textarea></div><input type="hidden" id="editUserId" value="{{ user.id }}"></form></div><div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button class="btn btn-primary" onclick="saveProfile()">Сохранить</button></div></div></div></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const userId = {{ user.id }};
+        const seekerProfileId = {{ profile.id }};
+        
+        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
+      function showSection(section) {
+    const sections = ['profile', 'responses', 'favorites', 'network', 'notifications', 'chats', 'events', 'privacy'];
+    sections.forEach(s => { 
+        const el = document.getElementById(s + 'Section'); 
+        if (el) el.style.display = 'none'; 
+    });
+    
+    const active = document.getElementById(section + 'Section');
+    if (active) active.style.display = 'block';
+    
+    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+        link.classList.remove('active');
+        const onclick = link.getAttribute('onclick');
+        if (onclick && onclick.includes(`'${section}'`)) {
+            link.classList.add('active');
+        }
+    });
+    
+    if (section === 'network') {
+        switchNetworkTab('search');
+        setTimeout(() => {
+            if (typeof showAllSeekers === 'function') {
+                showAllSeekers();
+            }
+        }, 100);
+    }
+    if (section === 'notifications' && typeof loadNotifications === 'function') loadNotifications();
+    if (section === 'chats' && typeof loadConversations === 'function') loadConversations();
+    if (section === 'events' && typeof loadEvents === 'function') loadEvents();
+}
+        
+        function saveProfile() {
+            const skills = document.getElementById('editSkills').value.split(',').map(s => s.trim()).filter(s => s);
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('full_name', document.getElementById('editFullName').value);
+            formData.append('university', document.getElementById('editUniversity').value);
+            formData.append('course', document.getElementById('editCourse').value);
+            formData.append('graduation_year', document.getElementById('editGraduationYear').value);
+            formData.append('phone', document.getElementById('editPhone').value);
+            formData.append('github', document.getElementById('editGithub').value);
+            formData.append('skills', JSON.stringify(skills));
+            formData.append('about', document.getElementById('editAbout').value);
+            fetch('/api/profile/update', { method: 'POST', body: formData }).then(() => location.reload());
+        }
+        
+        function openEditModal() { new bootstrap.Modal(document.getElementById('editModal')).show(); }
+        function removeFavorite(oppId) { fetch('/api/favorite/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ opportunity_id: oppId, seeker_id: seekerProfileId }) }).then(() => location.reload()); }
+        
+        // ========== ПОИСК СОИСКАТЕЛЕЙ ==========
+        async function searchSeekers() {
+            const name = document.getElementById('searchName').value;
+            const skills = document.getElementById('searchSkills').value;
+            const university = document.getElementById('searchUniversity').value;
+            
+            const params = new URLSearchParams();
+            if (name && name.trim()) params.append('q', name.trim());
+            if (skills && skills.trim()) params.append('skills', skills.trim());
+            if (university && university.trim()) params.append('university', university.trim());
+            
+            console.log('🔍 Поиск:', params.toString());
+            
+            try {
+                const response = await fetch(`/api/searchers/search?${params}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('❌ Ошибка:', error);
+                    alert('Ошибка поиска: ' + (error.detail || 'Неизвестная ошибка'));
+                    return;
+                }
+                
+                const seekers = await response.json();
+                console.log('📥 Найдено:', seekers.length);
+                
+                renderSeekersList(seekers);
+                
+            } catch (error) {
+                console.error('❌ Ошибка поиска:', error);
+                document.getElementById('searchResults').innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Ошибка загрузки</p>
+                        <button class="btn btn-sm btn-primary" onclick="searchSeekers()">Повторить</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Показать всех соискателей
+        async function showAllSeekers() {
+            document.getElementById('searchName').value = '';
+            document.getElementById('searchSkills').value = '';
+            document.getElementById('searchUniversity').value = '';
+            
+            console.log('📋 Загрузка всех соискателей...');
+            
+            try {
+                const response = await fetch(`/api/searchers/search`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('❌ Ошибка:', error);
+                    alert('Ошибка загрузки: ' + (error.detail || 'Неизвестная ошибка'));
+                    return;
+                }
+                
+                const seekers = await response.json();
+                console.log('📥 Загружено соискателей:', seekers.length);
+                
+                renderSeekersList(seekers);
+                
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                document.getElementById('searchResults').innerHTML = `
+                    <div class="col-12 text-center text-danger py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Ошибка загрузки</p>
+                        <button class="btn btn-sm btn-primary" onclick="showAllSeekers()">Повторить</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Функция для отображения списка соискателей
+        function renderSeekersList(seekers) {
+            const container = document.getElementById('searchResults');
+            
+            if (!seekers || seekers.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-white-50 py-5">
+                        <i class="fas fa-user-slash fa-3x mb-3"></i>
+                        <p>Никого не найдено</p>
+                        <small>Попробуйте изменить параметры поиска</small>
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-primary" onclick="searchSeekers()">Повторить поиск</button>
+                            <button class="btn btn-sm btn-secondary" onclick="showAllSeekers()">Показать всех</button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = seekers.map(s => {
+                let buttonHtml = '';
+                if (s.connection_status === 'friends') {
+                    buttonHtml = `<button class="btn btn-sm btn-success flex-grow-1" disabled><i class="fas fa-check"></i> В контактах</button>`;
+                } else if (s.connection_status === 'request_sent') {
+                    buttonHtml = `<button class="btn btn-sm btn-secondary flex-grow-1" disabled><i class="fas fa-clock"></i> Запрос отправлен</button>`;
+                } else if (s.connection_status === 'request_received') {
+                    buttonHtml = `<button class="btn btn-sm btn-primary flex-grow-1" onclick="acceptRequestByUserId(${s.user_id})"><i class="fas fa-check"></i> Принять запрос</button>`;
+                } else {
+                    buttonHtml = `<button class="btn btn-sm btn-primary flex-grow-1" onclick="sendRequest(${s.id})"><i class="fas fa-user-plus"></i> В контакты</button>`;
+                }
+                
+                return `
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="mb-2">${escapeHtml(s.full_name || s.username)}</h5>
+                                    ${s.profile_hidden ? '<span class="badge bg-secondary"><i class="fas fa-lock"></i> Скрыт</span>' : ''}
+                                </div>
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-graduation-cap me-1"></i> ${escapeHtml(s.university || 'Университет не указан')}
+                                </p>
+                                ${!s.profile_hidden && s.skills && s.skills.length > 0 ? `
+                                    <div class="mt-2 mb-2">
+                                        ${s.skills.slice(0, 3).map(skill => `<span class="skill-tag">${escapeHtml(skill)}</span>`).join('')}
+                                        ${s.skills.length > 3 ? `<span class="skill-tag">+${s.skills.length - 3}</span>` : ''}
+                                    </div>
+                                ` : ''}
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    <button class="btn btn-sm btn-outline-primary flex-grow-1" 
+                                            onclick="location.href='/profile/seeker/view/${s.id}'">
+                                        <i class="fas fa-eye"></i> Профиль
+                                    </button>
+                                    ${buttonHtml}
+                                    <button class="btn btn-sm btn-success flex-grow-1" 
+                                            onclick="openChatWithSeeker(${s.user_id}, '${escapeHtml(s.full_name || s.username)}')">
+                                        <i class="fas fa-comment"></i> Написать
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function sendRequest(friendId) {
+            console.log('Отправка запроса, friendId:', friendId);
+            try {
+                const response = await fetch(`/api/connection/request?friend_id=${friendId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    showAllSeekers();
+                } else {
+                    alert('❌ Ошибка: ' + (data.detail || data.message || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('❌ Ошибка соединения: ' + error.message);
+            }
+        }
+        
+        async function acceptRequestByUserId(userId) {
+            try {
+                const response = await fetch('/api/connections?status=pending');
+                const requests = await response.json();
+                const request = requests.find(r => r.user_id === userId);
+                if (request) {
+                    await acceptRequest(request.id);
+                } else {
+                    alert('Запрос не найден');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при принятии запроса');
+            }
+        }
+        
+        async function acceptRequest(id) {
+            console.log('🔍 Принятие запроса ID:', id);
+            try {
+                const response = await fetch(`/api/connection/accept/${id}`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    loadRequests();
+                    loadContacts();
+                    showAllSeekers();
+                } else {
+                    alert('❌ Ошибка: ' + (data.detail || data.message));
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('❌ Ошибка соединения: ' + error.message);
+            }
+        }
+        
+        async function rejectRequest(id) {
+            if (!confirm('Отклонить запрос?')) return;
+            try {
+                const response = await fetch(`/api/connection/reject/${id}`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    loadRequests();
+                } else {
+                    alert('❌ Ошибка: ' + (data.detail || data.message));
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('❌ Ошибка соединения: ' + error.message);
+            }
+        }
+        
+        function switchNetworkTab(tab) {
+            document.getElementById('searchTab').style.display = tab === 'search' ? 'block' : 'none';
+            document.getElementById('requestsTab').style.display = tab === 'requests' ? 'block' : 'none';
+            document.getElementById('contactsTab').style.display = tab === 'contacts' ? 'block' : 'none';
+            if (tab === 'requests') loadRequests();
+            if (tab === 'contacts') loadContacts();
+        }
+        
+        async function loadRequests() {
+            try {
+                const response = await fetch('/api/connections?status=pending');
+                const requests = await response.json();
+                const container = document.getElementById('requestsList');
+                const badge = document.getElementById('requestsTabBadge');
+                
+                console.log('📥 Запросы:', requests);
+                
+                if (!requests || requests.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center text-white-50 py-5">Нет входящих запросов</div>';
+                    if (badge) badge.style.display = 'none';
+                    return;
+                }
+                
+                if (badge) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = requests.length;
+                }
+                
+                container.innerHTML = requests.map(r => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="mb-2">${escapeHtml(r.name)}</h5>
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-graduation-cap me-1"></i> ${escapeHtml(r.university || 'Университет не указан')}
+                                </p>
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    <button class="btn btn-sm btn-success flex-grow-1" 
+                                            onclick="acceptRequest(${r.id})">
+                                        <i class="fas fa-check"></i> Принять
+                                    </button>
+                                    <button class="btn btn-sm btn-danger flex-grow-1" 
+                                            onclick="rejectRequest(${r.id})">
+                                        <i class="fas fa-times"></i> Отклонить
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary flex-grow-1" 
+                                            onclick="location.href='/profile/seeker/view/${r.seeker_id}'">
+                                        <i class="fas fa-eye"></i> Профиль
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-clock me-1"></i> ${r.created_at || 'Недавно'}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки запросов:', error);
+                document.getElementById('requestsList').innerHTML = '<div class="col-12 text-center text-danger py-5">Ошибка загрузки</div>';
+            }
+        }
+        
+        async function loadContacts() {
+            try {
+                const response = await fetch('/api/connections?status=accepted');
+                const contacts = await response.json();
+                const container = document.getElementById('contactsList');
+                const countSpan = document.getElementById('contactsCount');
+                
+                if (!contacts || contacts.length === 0) {
+                    container.innerHTML = '<div class="col-12 text-center text-white-50 py-5">У вас пока нет контактов</div>';
+                    if (countSpan) countSpan.textContent = '0';
+                    return;
+                }
+                
+                if (countSpan) countSpan.textContent = contacts.length;
+                
+                container.innerHTML = contacts.map(c => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5>${escapeHtml(c.name)}</h5>
+                                <p class="text-muted small">${escapeHtml(c.university || 'Университет не указан')}</p>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    <button class="btn btn-sm btn-outline-primary flex-grow-1" onclick="location.href='/profile/seeker/view/${c.friend_id}'">
+                                        <i class="fas fa-eye"></i> Профиль
+                                    </button>
+                                    <button class="btn btn-sm btn-danger flex-grow-1" onclick="removeContact(${c.friend_id})">
+                                        <i class="fas fa-trash"></i> Удалить
+                                    </button>
+                                    <button class="btn btn-sm btn-success flex-grow-1" onclick="openChatWithSeeker(${c.user_id}, '${escapeHtml(c.name)}')">
+                                        <i class="fas fa-comment"></i> Написать
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Ошибка загрузки контактов:', error);
+            }
+        }
+        
+        async function removeContact(friendId) {
+            if (!confirm('Удалить из контактов?')) return;
+            const res = await fetch(`/api/connection/remove/${friendId}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message);
+            loadContacts();
+        }
+        
+        // ========== УВЕДОМЛЕНИЯ ==========
+        async function loadNotifications() {
+            const res = await fetch('/api/notifications');
+            const notifs = await res.json();
+            const container = document.getElementById('notificationsList');
+            if (!notifs.length) {
+                container.innerHTML = '<div class="card-body text-center">Нет уведомлений</div>';
+                return;
+            }
+            container.innerHTML = notifs.map(n => `<div class="border-bottom p-3"><b>${escapeHtml(n.title)}</b><br>${escapeHtml(n.message)}<br><small>${n.created_at}</small></div>`).join('');
+            updateUnreadCount();
+        }
+        
+        async function markAllNotificationsRead() {
+            await fetch('/api/notifications/mark-all-read', { method: 'POST' });
+            loadNotifications();
+        }
+        
+        async function updateUnreadCount() {
+            const res = await fetch('/api/notifications/unread-count');
+            const data = await res.json();
+            const badge = document.getElementById('notificationsBadge');
+            if (data.count > 0) {
+                badge.style.display = 'inline-block';
+                badge.textContent = data.count;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // ========== ЧАТ ==========
+        let currentChatUserId = null;
+        
+        async function loadConversations() {
+            try {
+                const response = await fetch('/api/chat/conversations');
+                const conversations = await response.json();
+                const container = document.getElementById('conversationsList');
+                if (!conversations.length) {
+                    container.innerHTML = '<div class="text-center p-4 text-muted">Нет диалогов</div>';
+                    return;
+                }
+                container.innerHTML = conversations.map(c => `
+                    <div class="conversation-item p-3 border-bottom" onclick="loadChat(${c.user_id})" style="cursor: pointer;">
+                        <div class="d-flex justify-content-between">
+                            <strong>${escapeHtml(c.username)}</strong>
+                            ${c.unread > 0 ? `<span class="badge bg-danger">${c.unread}</span>` : ''}
+                        </div>
+                        <small class="text-muted">${escapeHtml(c.last_message)}</small>
+                    </div>
+                `).join('');
+                updateUnreadChatCount();
+            } catch (error) {
+                console.error('Ошибка загрузки диалогов:', error);
+            }
+        }
+        
+        async function loadChat(userId) {
+            currentChatUserId = userId;
+            try {
+                const response = await fetch(`/api/chat/messages/${userId}`);
+                const data = await response.json();
+                if (!data || !data.user) {
+                    document.getElementById('chatHeader').innerHTML = `<i class="fas fa-comment me-2"></i>Чат`;
+                } else {
+                    document.getElementById('chatHeader').innerHTML = `<i class="fas fa-comment me-2"></i>Чат с ${escapeHtml(data.user.username)}`;
+                }
+                const messagesContainer = document.getElementById('chatMessages');
+                if (!data.messages || data.messages.length === 0) {
+                    messagesContainer.innerHTML = `<div class="text-center p-5 text-muted"><i class="fas fa-comments fa-3x mb-3"></i><p>Нет сообщений. Напишите что-нибудь!</p></div>`;
+                    document.getElementById('chatInput').style.display = 'block';
+                    return;
+                }
+                messagesContainer.innerHTML = data.messages.map(m => `
+                    <div class="mb-2 ${m.is_mine ? 'text-end' : 'text-start'}">
+                        <div class="d-inline-block p-2 rounded ${m.is_mine ? 'chat-message-mine' : 'chat-message-other'}" style="max-width: 70%;">
+                            ${escapeHtml(m.text)}
+                        </div>
+                    </div>
+                `).join('');
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                document.getElementById('chatInput').style.display = 'block';
+                loadConversations();
+            } catch (error) {
+                console.error('Ошибка загрузки сообщений:', error);
+            }
+        }
+        
+        async function sendMessage() {
+            const text = document.getElementById('messageText').value.trim();
+            if (!text || !currentChatUserId) return;
+            const formData = new URLSearchParams();
+            formData.append('receiver_id', currentChatUserId);
+            formData.append('text', text);
+            try {
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('messageText').value = '';
+                    loadChat(currentChatUserId);
+                } else {
+                    alert('Ошибка отправки: ' + (data.message || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка отправки сообщения');
+            }
+        }
+        
+        async function updateUnreadChatCount() {
+            try {
+                const response = await fetch('/api/chat/unread-count');
+                const data = await response.json();
+                const badge = document.getElementById('unreadChatBadge');
+                if (data.count > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = data.count;
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        function openChatWithSeeker(seekerUserId, seekerName) {
+            const currentUserId = {{ user.id }};
+            if (!currentUserId) {
+                alert('Пожалуйста, войдите в систему');
+                window.location.href = '/login';
+                return;
+            }
+            if (seekerUserId === currentUserId) {
+                alert('Нельзя написать самому себе');
+                return;
+            }
+            const chatData = { user_id: seekerUserId, username: seekerName, role: 'seeker' };
+            localStorage.setItem('openChatWithSeeker', JSON.stringify(chatData));
+            showSection('chats');
+            setTimeout(() => {
+                if (typeof loadConversations === 'function') {
+                    loadConversations();
+                    setTimeout(() => {
+                        if (typeof loadChat === 'function') loadChat(seekerUserId);
+                    }, 500);
+                }
+            }, 300);
+        }
+        
+        // ========== МЕРОПРИЯТИЯ ==========
+        async function loadEvents() {
+            try {
+                const res = await fetch('/api/events');
+                const events = await res.json();
+                const container = document.getElementById('eventsList');
+                if (!events.length) {
+                    container.innerHTML = '<div class="col-12 text-center text-white-50 py-5">Нет мероприятий</div>';
+                    return;
+                }
+                container.innerHTML = events.map(e => `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header"><h5 class="mb-0">${escapeHtml(e.title)}</h5></div>
+                            <div class="card-body">
+                                <p><i class="fas fa-calendar me-2"></i>${e.start_date}</p>
+                                <p><i class="fas fa-map-marker-alt me-2"></i>${e.is_online ? 'Онлайн' : (e.location || 'Не указано')}</p>
+                                <p><i class="fas fa-users me-2"></i>Участников: ${e.participants_count || 0}</p>
+                            </div>
+                            <div class="card-footer">
+                                ${e.is_registered ? `<button class="btn btn-sm btn-danger w-100" onclick="unregisterEvent(${e.id})">Отменить регистрацию</button>` : `<button class="btn btn-sm btn-primary w-100" onclick="registerEvent(${e.id})">Зарегистрироваться</button>`}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+        
+        async function registerEvent(eventId) {
+            const res = await fetch(`/api/event/register/${eventId}`, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message);
+            loadEvents();
+        }
+        
+        async function unregisterEvent(eventId) {
+            if (!confirm('Отменить регистрацию?')) return;
+            const res = await fetch(`/api/event/unregister/${eventId}`, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message);
+            loadEvents();
+        }
+        
+        // ========== ПРИВАТНОСТЬ ==========
+        async function savePrivacy() {
+            const showProfile = document.getElementById('showProfileSwitch').checked;
+            const formData = new URLSearchParams();
+            formData.append('user_id', userId);
+            formData.append('show_profile', showProfile ? 'true' : 'false');
+            const res = await fetch('/api/profile/privacy', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData });
+            const data = await res.json();
+            const msgDiv = document.getElementById('privacyMessage');
+            msgDiv.style.display = 'block';
+            msgDiv.className = data.success ? 'alert alert-success' : 'alert alert-danger';
+            msgDiv.innerHTML = data.message;
+            setTimeout(() => msgDiv.style.display = 'none', 3000);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            showSection('profile');
+            updateUnreadCount();
+            setInterval(updateUnreadChatCount, 10000);
+            
+            const openChatWith = localStorage.getItem('openChatWith');
+            if (openChatWith) {
+                try {
+                    const data = JSON.parse(openChatWith);
+                    localStorage.removeItem('openChatWith');
+                    showSection('chats');
+                    setTimeout(() => { if (typeof loadChat === 'function') loadChat(data.user_id); }, 500);
+                } catch (e) { console.error('Ошибка при открытии чата:', e); }
+            }
+            
+            const openChatWithSeeker = localStorage.getItem('openChatWithSeeker');
+            if (openChatWithSeeker) {
+                try {
+                    const data = JSON.parse(openChatWithSeeker);
+                    localStorage.removeItem('openChatWithSeeker');
+                    showSection('chats');
+                    setTimeout(() => {
+                        if (typeof loadConversations === 'function') {
+                            loadConversations();
+                            setTimeout(() => { if (typeof loadChat === 'function') loadChat(data.user_id); }, 500);
+                        }
+                    }, 300);
+                } catch (e) { console.error('Ошибка при открытии чата с соискателем:', e); }
+            }
+        });
+    </script>
+</body>
+</html>

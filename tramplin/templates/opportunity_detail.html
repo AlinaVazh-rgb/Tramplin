@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ opportunity.title }} - Трамплин</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .skill-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .navbar {
+            background: white !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 140px;
+        }
+        @media (max-width: 768px) {
+            .action-buttons .btn {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-rocket me-2"></i>Трамплин
+            </a>
+            <div class="ms-auto">
+                {% if current_user %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ current_user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if current_user.role == 'seeker' %}
+                        <li><a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}"><i class="fas fa-user me-2"></i> Мой профиль</a></li>
+                        <li><a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}#responses"><i class="fas fa-paper-plane me-2"></i> Мои отклики</a></li>
+                        <li><a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}#favorites"><i class="fas fa-heart me-2"></i> Избранное</a></li>
+                        {% elif current_user.role == 'employer' %}
+                        <li><a class="dropdown-item" href="/profile/employer/{{ current_user.id }}"><i class="fas fa-building me-2"></i> Моя компания</a></li>
+                        <li><a class="dropdown-item" href="/profile/employer/{{ current_user.id }}#vacancies"><i class="fas fa-briefcase me-2"></i> Мои вакансии</a></li>
+                        <li><a class="dropdown-item" href="/profile/employer/{{ current_user.id }}#responses"><i class="fas fa-users me-2"></i> Отклики</a></li>
+                        {% elif current_user.role == 'curator' %}
+                        <li><a class="dropdown-item" href="/curator/dashboard"><i class="fas fa-shield-alt me-2"></i> Панель модератора</a></li>
+                        {% elif current_user.role == 'admin' %}
+                        <li><a class="dropdown-item" href="/admin/dashboard"><i class="fas fa-user-shield me-2"></i> Админ-панель</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Выйти</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <a href="/login" class="btn btn-outline-primary me-2"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="/register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Регистрация</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h2>{{ opportunity.title }}</h2>
+                        <h5 class="text-muted">{{ opportunity.employer.company_name }}</h5>
+                        
+                        <div class="mt-3">
+                            <span class="badge bg-primary">{{ opportunity.type.value }}</span>
+                            <span class="badge bg-secondary">{{ opportunity.work_format.value }}</span>
+                            {% if opportunity.salary_min %}
+                            <span class="badge bg-success">от {{ opportunity.salary_min }} ₽</span>
+                            {% endif %}
+                        </div>
+                        
+                        <hr>
+                        
+                        <h5>Описание:</h5>
+                        <p>{{ opportunity.description }}</p>
+                        
+                        <h5>Требования:</h5>
+                        <p>{{ opportunity.requirements or 'Не указаны' }}</p>
+                        
+                        <h5>Теги:</h5>
+                        <div>
+                            {% for tag in tags %}
+                            <span class="skill-tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Кнопки действий -->
+
+						<div class="action-buttons">
+							{% if current_user and current_user.role == 'seeker' %}
+								<button class="btn btn-primary" id="applyBtn" onclick="applyToVacancy()">
+									<i class="fas fa-paper-plane"></i> Откликнуться
+								</button>
+								<button class="btn btn-outline-primary" onclick="saveToFavorites()">
+									<i class="far fa-bookmark"></i> В избранное
+								</button>
+								<button class="btn btn-outline-success" onclick="openChatWithEmployer()">
+									<i class="fas fa-comment"></i> Написать работодателю
+								</button>
+							{% elif not current_user %}
+								<a href="/login" class="btn btn-primary">
+									<i class="fas fa-sign-in-alt"></i> Войдите, чтобы откликнуться
+								</a>
+								<button class="btn btn-outline-primary" onclick="saveToFavorites()">
+									<i class="far fa-bookmark"></i> В избранное
+								</button>
+							{% endif %}
+						</div>
+                        
+                        <div id="responseMessage" class="mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><i class="fas fa-map-marker-alt me-2"></i> {{ opportunity.location }}</p>
+                        <p><i class="fas fa-calendar me-2"></i> Опубликовано: {{ opportunity.published_at.strftime('%d.%m.%Y') }}</p>
+                        {% if opportunity.expires_at %}
+                        <p><i class="fas fa-hourglass-end me-2"></i> Действует до: {{ opportunity.expires_at.strftime('%d.%m.%Y') }}</p>
+                        {% endif %}
+                        <p><i class="fas fa-eye me-2"></i> Просмотров: {{ opportunity.views }}</p>
+                        {% if contacts %}
+                        <hr>
+                        <h6>Контакты:</h6>
+                        {% if contacts.email %}
+                        <p><i class="fas fa-envelope me-2"></i> {{ contacts.email }}</p>
+                        {% endif %}
+                        {% if contacts.phone %}
+                        <p><i class="fas fa-phone me-2"></i> {{ contacts.phone }}</p>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script>
+		const opportunityId = {{ opportunity.id }};
+		const currentUser = {{ 'true' if current_user else 'false' }};
+		const currentUserId = {{ current_user.id if current_user else 'null' }};
+		const currentUserRole = '{{ current_user.role if current_user else '' }}';
+		const seekerProfileId = {{ seeker_profile_id if seeker_profile_id else 'null' }};
+		const employerUserId = {{ opportunity.employer.user_id }};
+		const employerCompanyName = '{{ opportunity.employer.company_name }}';
+		
+		async function applyToVacancy() {
+			if (!currentUser) {
+				alert('Пожалуйста, войдите в систему');
+				window.location.href = '/login';
+				return;
+			}
+			
+			if (!seekerProfileId) {
+				alert('Профиль соискателя не найден. Пожалуйста, заполните профиль.');
+				window.location.href = '/profile/seeker/' + currentUserId;
+				return;
+			}
+			
+			const message = prompt('Напишите сопроводительное сообщение (необязательно):');
+			if (message === null) return;
+			
+			const applyBtn = document.getElementById('applyBtn');
+			const originalText = applyBtn.innerHTML;
+			applyBtn.disabled = true;
+			applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отправка...';
+			
+			try {
+				const response = await fetch('/api/response/create', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({
+						opportunity_id: opportunityId,
+						seeker_id: seekerProfileId,
+						message: message || ''
+					})
+				});
+				
+				const result = await response.json();
+				
+				if (response.ok) {
+					const msgDiv = document.getElementById('responseMessage');
+					msgDiv.style.display = 'block';
+					msgDiv.className = 'alert alert-success';
+					msgDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + result.message;
+					applyBtn.disabled = true;
+					applyBtn.innerHTML = '<i class="fas fa-check"></i> Отклик отправлен';
+					setTimeout(() => {
+						msgDiv.style.display = 'none';
+					}, 5000);
+				} else {
+					let errorMsg = result.detail || 'Неизвестная ошибка';
+					alert('❌ Ошибка: ' + errorMsg);
+					applyBtn.disabled = false;
+					applyBtn.innerHTML = originalText;
+				}
+			} catch (error) {
+				console.error('Ошибка:', error);
+				alert('❌ Ошибка соединения: ' + error.message);
+				applyBtn.disabled = false;
+				applyBtn.innerHTML = originalText;
+			}
+		}
+		
+		async function saveToFavorites() {
+			const opportunityId = {{ opportunity.id }};
+			
+			// Проверяем, авторизован ли пользователь
+			const isLoggedIn = {{ 'true' if current_user else 'false' }};
+			
+			if (!isLoggedIn) {
+				// Неавторизованный пользователь - работаем с localStorage
+				let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+				const index = favorites.indexOf(opportunityId);
+				
+				if (index === -1) {
+					favorites.push(opportunityId);
+					localStorage.setItem('favorites', JSON.stringify(favorites));
+					alert('✅ Добавлено в избранное (сохранено в браузере)');
+				} else {
+					favorites.splice(index, 1);
+					localStorage.setItem('favorites', JSON.stringify(favorites));
+					alert('✅ Удалено из избранного');
+				}
+				
+				// Обновляем кнопку на странице
+				updateFavoriteButton(!(index === -1));
+				return;
+			}
+			
+			// Авторизованный пользователь - работаем с сервером
+			if (!seekerProfileId) {
+				alert('Профиль соискателя не найден');
+				return;
+			}
+			
+			try {
+				const response = await fetch('/api/favorite/toggle', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({
+						opportunity_id: opportunityId,
+						seeker_id: seekerProfileId
+					})
+				});
+				
+				const result = await response.json();
+				
+				if (response.ok) {
+					alert(result.message);
+					updateFavoriteButton(result.is_favorite);
+				} else {
+					alert('❌ Ошибка: ' + (result.detail || 'Неизвестная ошибка'));
+				}
+			} catch (error) {
+				console.error('Ошибка:', error);
+				alert('❌ Ошибка соединения: ' + error.message);
+			}
+		}
+
+		function updateFavoriteButton(isFavorite) {
+			const btn = document.querySelector('.btn-outline-primary[onclick="saveToFavorites()"]');
+			if (btn) {
+				if (isFavorite) {
+					btn.innerHTML = '<i class="fas fa-heart text-danger"></i> В избранном';
+					btn.classList.remove('btn-outline-primary');
+					btn.classList.add('btn-danger');
+				} else {
+					btn.innerHTML = '<i class="far fa-bookmark"></i> В избранное';
+					btn.classList.remove('btn-danger');
+					btn.classList.add('btn-outline-primary');
+				}
+			}
+		}
+
+		// При загрузке страницы проверяем избранное в localStorage
+		document.addEventListener('DOMContentLoaded', function() {
+			const isLoggedIn = {{ 'true' if current_user else 'false' }};
+			const opportunityId = {{ opportunity.id }};
+			
+			if (!isLoggedIn) {
+				const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+				const isFavorite = favorites.includes(opportunityId);
+				updateFavoriteButton(isFavorite);
+			}
+		});
+		
+		function openChatWithEmployer() {
+			// Сохраняем данные работодателя в localStorage
+			const chatData = {
+				user_id: employerUserId,
+				username: employerCompanyName,
+				role: 'employer'
+			};
+			localStorage.setItem('openChatWith', JSON.stringify(chatData));
+			
+			// Перенаправляем в профиль соискателя с открытой вкладкой чата
+			window.location.href = '/profile/seeker/' + currentUserId + '#chats';
+		}
+	</script>
+</body>
+</html>

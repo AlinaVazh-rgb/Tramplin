@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трамплин - Карьерная платформа</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: white !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin-right: 8px;
+        }
+        
+        #map {
+            height: 500px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .vacancy-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .vacancy-card:hover {
+            transform: translateX(5px);
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .skill-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .vacancy-popup {
+            min-width: 250px;
+        }
+        
+        .vacancy-popup h6 {
+            margin: 0 0 5px 0;
+            color: #667eea;
+        }
+        
+        .vacancy-popup .company {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .vacancy-popup .salary {
+            color: #28a745;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .vacancy-popup button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+        }
+        
+        .vacancy-count {
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-radius: 25px;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .map-controls button {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        
+        .map-controls button:hover {
+            background: #f0f0f0;
+        }
+        
+        .leaflet-control-attribution {
+            display: none !important;
+        }
+        
+        .dropdown-menu {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .dropdown-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .dropdown-item.text-danger:hover {
+            background: #fee;
+        }
+        
+        @media (max-width: 768px) {
+            #map {
+                height: 350px;
+                margin-bottom: 20px;
+            }
+        }
+        
+        /* Стили для красивой всплывающей карточки при наведении */
+        .custom-tooltip {
+            position: fixed;
+            z-index: 1000;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+            border-left: 4px solid #667eea;
+            min-width: 300px;
+            max-width: 340px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease, transform 0.2s ease;
+            pointer-events: none;
+            transform: translateY(5px);
+        }
+        
+        .custom-tooltip.visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        
+        .custom-tooltip-content {
+            padding: 16px 18px;
+        }
+        
+        /* Заголовок в тултипе */
+        .tooltip-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tooltip-title i {
+            font-size: 16px;
+            color: #667eea;
+        }
+        
+        /* Компания в тултипе */
+        .tooltip-company {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tooltip-company i {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        
+        /* Зарплата */
+        .tooltip-salary {
+            font-size: 15px;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0fdf4;
+            padding: 6px 12px;
+            border-radius: 10px;
+            display: inline-flex;
+        }
+        
+        /* Дата мероприятия */
+        .tooltip-event-date {
+            font-size: 13px;
+            color: #ef4444;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fef2f2;
+            padding: 6px 12px;
+            border-radius: 10px;
+            display: inline-flex;
+        }
+        
+        /* Теги */
+        .tooltip-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        
+        .tooltip-tag {
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #475569;
+            transition: all 0.2s;
+        }
+        
+        .tooltip-tag:hover {
+            background: #e2e8f0;
+            transform: scale(1.02);
+        }
+        
+        /* Тип вакансии */
+        .tooltip-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .tooltip-type.vacancy { background: #e0e7ff; color: #4338ca; }
+        .tooltip-type.internship { background: #dcfce7; color: #166534; }
+        .tooltip-type.mentoring { background: #fed7aa; color: #9a3412; }
+        .tooltip-type.event { background: #ffe4e6; color: #be123c; }
+        
+        /* Кнопка подробнее - улучшенная */
+        .tooltip-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            width: 100%;
+            margin-top: 8px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+        
+        .tooltip-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            text-decoration: none;
+            color: white;
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46a0 100%);
+        }
+        
+        .tooltip-button:active {
+            transform: translateY(0);
+        }
+        
+        /* Разделитель */
+        .tooltip-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 12px 0;
+        }
+        
+        /* Маленькая стрелка */
+        .tooltip-arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 10px 8px 0 8px;
+            border-color: white transparent transparent transparent;
+            bottom: -10px;
+            left: 24px;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+        
+        /* Анимация появления */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .custom-tooltip.visible {
+            animation: slideIn 0.2s ease-out;
+        }
+    </style>
+</head>
+<body>
+   <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-rocket me-2"></i>Трамплин
+        </a>
+        <div class="ms-auto d-flex align-items-center gap-2">
+            {% if current_user %}
+                {% if current_user.role == 'admin' %}
+                <a href="/admin/dashboard" class="btn btn-danger me-2">
+                    <i class="fas fa-user-shield me-1"></i> Админ-панель
+                </a>
+                {% endif %}
+                
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="user-avatar d-inline-flex">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        {{ current_user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if current_user.role == 'seeker' %}
+                        <li>
+                            <a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}">
+                                <i class="fas fa-user me-2"></i> Мой профиль
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}#responses">
+                                <i class="fas fa-paper-plane me-2"></i> Мои отклики
+                                {% if responses_count > 0 %}
+                                <span class="badge bg-danger ms-2">{{ responses_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}#favorites">
+                                <i class="fas fa-heart me-2"></i> Избранное
+                                {% if favorites_count > 0 %}
+                                <span class="badge bg-danger ms-2">{{ favorites_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        {% elif current_user.role == 'employer' %}
+                        <li>
+                            <a class="dropdown-item" href="/profile/employer/{{ current_user.id }}">
+                                <i class="fas fa-building me-2"></i> Моя компания
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/profile/employer/{{ current_user.id }}#vacancies">
+                                <i class="fas fa-briefcase me-2"></i> Мои вакансии
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/profile/employer/{{ current_user.id }}#responses">
+                                <i class="fas fa-users me-2"></i> Отклики
+                            </a>
+                        </li>
+                        {% elif current_user.role == 'curator' %}
+                        <li>
+                            <a class="dropdown-item" href="/curator/dashboard">
+                                <i class="fas fa-shield-alt me-2"></i> Панель модератора
+                            </a>
+                        </li>
+                        {% elif current_user.role == 'admin' %}
+                        <li>
+                            <a class="dropdown-item" href="/admin/dashboard">
+                                <i class="fas fa-user-shield me-2"></i> Админ-панель
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="/logout">
+                                <i class="fas fa-sign-out-alt me-2"></i> Выйти
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+			{% else %}
+				<!-- Кнопка избранного для неавторизованных -->
+				<button class="btn btn-outline-warning me-2" onclick="showFavoritesModal()">
+					<i class="fas fa-star"></i> Избранное 
+					<span id="favoritesCountBadge" class="badge bg-danger ms-1" style="display: none;">0</span>
+				</button>
+				<a href="/login" class="btn btn-outline-primary me-2">
+					<i class="fas fa-sign-in-alt"></i> Войти
+				</a>
+				<a href="/register" class="btn btn-primary">
+					<i class="fas fa-user-plus"></i> Регистрация
+				</a>
+			{% endif %}
+        </div>
+    </div>
+</nav>
+
+    <div class="container mt-4">
+        <div class="text-center text-white mb-4">
+            <h1 class="display-4">Найди свою идеальную работу</h1>
+            <p class="lead">Стажировки, вакансии и менторские программы для IT-специалистов</p>
+        </div>
+        
+		<div class="filter-section">
+			<h4><i class="fas fa-filter me-2"></i>Фильтры</h4>
+			<form id="filterForm" class="row g-3">
+				<div class="col-md-3">
+					<label class="form-label">Тип</label>
+					<select class="form-select" name="type" id="filterType">
+						<option value="">Все</option>
+						<option value="Вакансия">Вакансия</option>
+						<option value="Стажировка">Стажировка</option>
+						<option value="Менторская программа">Менторская программа</option>
+						<option value="Мероприятие">Мероприятие</option>
+					</select>
+				</div>
+				<div class="col-md-3">
+					<label class="form-label">Формат работы</label>
+					<select class="form-select" name="format" id="filterFormat">
+						<option value="">Все</option>
+						<option value="В офисе">В офисе</option>
+						<option value="Удаленно">Удаленно</option>
+						<option value="Гибрид">Гибрид</option>
+					</select>
+				</div>
+				<!-- НОВЫЙ ФИЛЬТР ДЛЯ МЕРОПРИЯТИЙ -->
+				<div class="col-md-3">
+					<label class="form-label">Формат мероприятия</label>
+					<select class="form-select" id="filterEventFormat">
+						<option value="">Все</option>
+						<option value="online">Заочно</option>
+						<option value="offline">Очно</option>
+					</select>
+				</div>
+				<div class="col-md-3">
+					<label class="form-label">Зарплата от (₽)</label>
+					<input type="number" class="form-control" name="min_salary" id="filterSalary" placeholder="50000">
+				</div>
+				<div class="col-md-3">
+					<label class="form-label">Город</label>
+					<input type="text" class="form-control" name="city" id="filterCity" placeholder="Москва">
+				</div>
+				<div class="col-12">
+					<button type="submit" class="btn btn-primary">
+						<i class="fas fa-search"></i> Найти
+					</button>
+					<button type="button" class="btn btn-secondary" id="resetFilters">
+						<i class="fas fa-undo"></i> Сбросить
+					</button>
+					<button type="button" class="btn btn-outline-primary" id="showAllVacancies">
+						<i class="fas fa-map-marker-alt"></i> Показать все
+					</button>
+				</div>
+			</form>
+		</div>
+
+        <div class="row">
+            <div class="col-lg-7 mb-4">
+                <div style="position: relative;">
+                    <div id="map"></div>
+                    <div class="map-controls">
+                        <button id="zoomIn" title="Приблизить">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button id="zoomOut" title="Отдалить">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button id="locateMe" title="Мое местоположение">
+                            <i class="fas fa-location-dot"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="vacancy-count" id="vacancyCount">
+                    <i class="fas fa-briefcase"></i> <span id="countNumber">0</span> вакансий найдено
+                </div>
+                <div id="vacanciesList" style="max-height: 500px; overflow-y: auto;">
+                    <div class="loading text-center">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-2">Загрузка вакансий...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кастомный тултип -->
+    <div id="customTooltip" class="custom-tooltip">
+        <div class="custom-tooltip-content" id="tooltipContent"></div>
+        <div class="tooltip-arrow"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        let map;
+        let markers = [];
+		let opportunitiesData = [];
+        let currentTooltipData = null;
+        let hideTooltipTimeout = null;
+        let customTooltip = null;
+        let tooltipContent = null;
+		// ========== ФУНКЦИИ ДЛЯ ИЗБРАННОГО В LOCALSTORAGE ==========
+		// Функция для получения избранного из localStorage
+		function getFavoritesFromLocal() {
+			if (typeof localStorage === 'undefined') return [];
+			try {
+				return JSON.parse(localStorage.getItem('favorites') || '[]');
+			} catch(e) {
+				return [];
+			}
+		}
+
+		// Функция для проверки, в избранном ли вакансия
+		function isFavoriteFromLocal(opportunityId) {
+			const favorites = getFavoritesFromLocal();
+			return favorites.includes(opportunityId);
+		}
+		// ========== КОНЕЦ ФУНКЦИЙ ==========
+        
+        // Функция escapeHtml
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Инициализация кастомного тултипа
+        function initCustomTooltip() {
+            customTooltip = document.getElementById('customTooltip');
+            tooltipContent = document.getElementById('tooltipContent');
+            
+            if (customTooltip) {
+                customTooltip.addEventListener('mouseenter', function() {
+                    if (hideTooltipTimeout) {
+                        clearTimeout(hideTooltipTimeout);
+                    }
+                });
+                
+                customTooltip.addEventListener('mouseleave', function() {
+                    hideTooltip();
+                });
+            }
+        }
+        
+        // Показать тултип
+        function showTooltip(event, data) {
+            if (!customTooltip || !tooltipContent) return;
+            
+            if (hideTooltipTimeout) {
+                clearTimeout(hideTooltipTimeout);
+            }
+            
+            currentTooltipData = data;
+            
+            let html = '';
+            
+            if (data.is_event) {
+                html = `
+                    <div class="tooltip-title">
+                        <i class="fas fa-calendar-alt"></i> ${escapeHtml(data.title.length > 50 ? data.title.substring(0, 50) + '...' : data.title)}
+                    </div>
+                    <div class="tooltip-company">
+                        <i class="fas fa-building"></i> ${escapeHtml(data.company)}
+                    </div>
+                    ${data.event_date ? `
+                        <div class="tooltip-event-date">
+                            <i class="fas fa-clock"></i> ${data.event_date}
+                        </div>
+                    ` : ''}
+                    <div class="tooltip-type event">${data.type}</div>
+                    ${data.tags && data.tags.length > 0 ? `
+                        <div class="tooltip-tags">
+                            ${data.tags.slice(0, 3).map(tag => `<span class="tooltip-tag">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="tooltip-divider"></div>
+                    <a href="/event/${data.id}" class="tooltip-button" onclick="event.stopPropagation();">
+                        <i class="fas fa-arrow-right"></i> Подробнее о мероприятии
+                    </a>
+                `;
+            } else {
+                html = `
+                    <div class="tooltip-title">
+                        <i class="fas fa-briefcase"></i> ${escapeHtml(data.title.length > 50 ? data.title.substring(0, 50) + '...' : data.title)}
+                    </div>
+                    <div class="tooltip-company">
+                        <i class="fas fa-building"></i> ${escapeHtml(data.company)}
+                    </div>
+                    ${data.salary_min ? `
+                        <div class="tooltip-salary">
+                            <i class="fas fa-ruble-sign"></i> от ${data.salary_min.toLocaleString()} ₽
+                            ${data.salary_max ? ` — до ${data.salary_max.toLocaleString()} ₽` : ''}
+                        </div>
+                    ` : ''}
+                    <div class="tooltip-type ${data.type === 'Стажировка' ? 'internship' : (data.type === 'Менторская программа' ? 'mentoring' : 'vacancy')}">
+                        ${data.type}
+                    </div>
+                    ${data.tags && data.tags.length > 0 ? `
+                        <div class="tooltip-tags">
+                            ${data.tags.slice(0, 3).map(tag => `<span class="tooltip-tag">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="tooltip-divider"></div>
+                    <a href="/opportunity/${data.id}" class="tooltip-button" onclick="event.stopPropagation();">
+                        <i class="fas fa-arrow-right"></i> Подробнее о вакансии
+                    </a>
+                `;
+            }
+            
+            tooltipContent.innerHTML = html;
+            
+            let left = event.clientX + 15;
+            let top = event.clientY - 70;
+            
+            if (left + 340 > window.innerWidth) {
+                left = event.clientX - 355;
+            }
+            
+            if (top < 10) {
+                top = event.clientY + 30;
+            }
+            
+            customTooltip.style.left = left + 'px';
+            customTooltip.style.top = top + 'px';
+            customTooltip.classList.add('visible');
+        }
+        
+        // Скрыть тултип
+        function hideTooltip() {
+            if (hideTooltipTimeout) {
+                clearTimeout(hideTooltipTimeout);
+            }
+            
+            hideTooltipTimeout = setTimeout(() => {
+                if (customTooltip && !isMouseOverTooltip()) {
+                    customTooltip.classList.remove('visible');
+                    currentTooltipData = null;
+                }
+            }, 200);
+        }
+        
+        // Проверка, находится ли мышь на тултипе
+        function isMouseOverTooltip() {
+            if (!customTooltip) return false;
+            const rect = customTooltip.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && 
+                   event && event.clientX >= rect.left && event.clientX <= rect.right &&
+                   event && event.clientY >= rect.top && event.clientY <= rect.bottom;
+        }
+        
+        function initMap() {
+            map = L.map('map').setView([55.7558, 37.6173], 10);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+            
+            document.getElementById('zoomIn').addEventListener('click', () => map.zoomIn());
+            document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
+            document.getElementById('locateMe').addEventListener('click', locateUser);
+            
+            loadVacancies();
+        }
+        
+        function locateUser() {
+            if (!navigator.geolocation) {
+                alert('❌ Ваш браузер не поддерживает геолокацию');
+                return;
+            }
+            
+            const locateBtn = document.getElementById('locateMe');
+            const originalText = locateBtn.innerHTML;
+            locateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            locateBtn.disabled = true;
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    map.setView([lat, lng], 15);
+                    
+                    L.marker([lat, lng]).addTo(map).bindPopup('Вы здесь').openPopup();
+                    
+                    locateBtn.innerHTML = originalText;
+                    locateBtn.disabled = false;
+                },
+                () => {
+                    locateBtn.innerHTML = originalText;
+                    locateBtn.disabled = false;
+                    alert('❌ Не удалось определить местоположение');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+				
+		function getMarkerIcon(opp) {
+			let color = '#667eea';
+			let icon = 'fa-building';
+			
+			// Если в избранном - золотой цвет
+			if (opp.is_favorite) {
+				color = '#ffc107';
+			} else {
+				// Иначе цвет по типу
+				if (opp.type === 'Стажировка') {
+					color = '#28a745';
+				} else if (opp.type === 'Менторская программа') {
+					color = '#ffc107';
+				} else if (opp.type === 'Мероприятие') {
+					color = '#dc3545';
+				}
+			}
+			
+			// Определяем иконку
+			if (opp.type === 'Стажировка') {
+				icon = 'fa-graduation-cap';
+			} else if (opp.type === 'Менторская программа') {
+				icon = 'fa-chalkboard-user';
+			} else if (opp.type === 'Мероприятие') {
+				icon = 'fa-calendar-alt';
+			} else if (opp.work_format === 'Удаленно' || opp.work_format === 'REMOTE') {
+				icon = 'fa-wifi';
+			} else if (opp.work_format === 'Гибрид' || opp.work_format === 'HYBRID') {
+				icon = 'fa-exchange-alt';
+			}
+			
+			return L.divIcon({
+				html: `<div style="background: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+					<i class="fas ${icon}" style="color: white; font-size: 14px;"></i>
+				</div>`,
+				className: 'custom-marker',
+				iconSize: [32, 32],
+				popupAnchor: [0, -16]
+			});
+		}
+        
+		async function loadVacancies(filters = {}) {
+			try {
+				const params = new URLSearchParams();
+				
+				let typeValue = filters.type;
+				if (typeValue === 'Вакансия') typeValue = 'VACANCY';
+				if (typeValue === 'Стажировка') typeValue = 'INTERNSHIP';
+				if (typeValue === 'Менторская программа') typeValue = 'MENTORING';
+				if (typeValue === 'Мероприятие') typeValue = 'EVENT';
+				
+				let formatValue = filters.format;
+				if (formatValue === 'В офисе') formatValue = 'OFFICE';
+				if (formatValue === 'Удаленно') formatValue = 'REMOTE';
+				if (formatValue === 'Гибрид') formatValue = 'HYBRID';
+				
+				if (typeValue && typeValue !== '') params.append('type', typeValue);
+				if (formatValue && formatValue !== '') params.append('format', formatValue);
+				if (filters.min_salary && filters.min_salary !== '') params.append('min_salary', filters.min_salary);
+				if (filters.city && filters.city !== '') params.append('city', filters.city);
+				if (filters.event_format && filters.event_format !== '') params.append('event_format', filters.event_format);
+				
+                
+                const response = await fetch(`/api/opportunities?${params}`);
+                const opportunities = await response.json();
+				const isLoggedIn = {{ 'true' if current_user else 'false' }};
+				if (!isLoggedIn) {
+					const favorites = getFavoritesFromLocal();
+					opportunities.forEach(opp => {
+						opp.is_favorite = favorites.includes(opp.id);
+					});
+				}
+				opportunitiesData = opportunities;
+                
+                if (opportunities.length === 0) {
+                    document.getElementById('vacanciesList').innerHTML = `
+                        <div class="alert alert-warning text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <p>По вашему запросу ничего не найдено</p>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="resetAllFilters()">Сбросить фильтры</button>
+                        </div>
+                    `;
+                    updateCount(0);
+                    return;
+                }
+                
+                updateMap(opportunities);
+                updateList(opportunities);
+                updateCount(opportunities.length);
+                
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                document.getElementById('vacanciesList').innerHTML = `
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p>Ошибка загрузки вакансий</p>
+                        <button class="btn btn-sm btn-primary mt-2" onclick="loadVacancies()">Повторить</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function updateMap(opportunities) {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            opportunities.forEach(opp => {
+                let lat = opp.latitude;
+                let lng = opp.longitude;
+                
+                if (!lat && !lng && opp.location) {
+                    const cities = {
+                        'Москва': [55.7558, 37.6173],
+                        'Санкт-Петербург': [59.9343, 30.3351],
+                        'Новосибирск': [55.0084, 82.9357],
+                        'Екатеринбург': [56.8389, 60.6057],
+                        'Казань': [55.7887, 49.1221],
+                        'Нижний Новгород': [56.2965, 43.9361],
+                        'Самара': [53.1959, 50.1002],
+                        'Ростов-на-Дону': [47.2221, 39.7203]
+                    };
+                    for (let [city, coords] of Object.entries(cities)) {
+                        if (opp.location.includes(city)) {
+                            lat = coords[0];
+                            lng = coords[1];
+                            break;
+                        }
+                    }
+                }
+                
+				if (lat && lng) {
+					const marker = L.marker([lat, lng], {
+						icon: getMarkerIcon(opp)  // ← НОВЫЙ ВЫЗОВ (передаем весь объект)
+					}).addTo(map);
+					
+					// Сохраняем ID в самом маркере
+					marker.opportunityId = opp.id;
+                    
+                    const tooltipData = {
+                        id: opp.id,
+                        title: opp.title,
+                        company: opp.company,
+                        type: opp.type,
+                        tags: opp.tags,
+                        salary_min: opp.salary_min,
+                        salary_max: opp.salary_max,
+                        event_date: opp.event_date,
+                        is_event: opp.is_event
+                    };
+                    
+                    marker.on('mouseover', function(e) {
+                        showTooltip(e.originalEvent, tooltipData);
+                    });
+                    
+                    marker.on('mouseout', function() {
+                        hideTooltip();
+                    });
+                    
+                    marker.bindPopup(`
+						<div style="min-width: 260px;">
+							<div style="font-weight: 700; font-size: 16px; margin-bottom: 8px;">${escapeHtml(opp.title)}</div>
+							<div style="color: #64748b; font-size: 13px; margin-bottom: 10px;">
+								<i class="fas ${opp.is_event ? 'fa-calendar-alt' : 'fa-building'}"></i> ${escapeHtml(opp.company)}
+							</div>
+							${opp.is_event && opp.event_date ? `
+								<div style="color: #ef4444; margin-bottom: 5px;">
+									<i class="fas fa-calendar-alt"></i> ${opp.event_date}
+									<!-- ИКОНКА ОНЛАЙН/ОФЛАЙН В ПОПАПЕ -->
+									<span class="badge ${opp.is_online ? 'bg-info' : 'bg-secondary'} ms-2">
+										<i class="fas ${opp.is_online ? 'fa-wifi' : 'fa-building'}"></i>
+										${opp.is_online ? 'Онлайн' : 'Очно'}
+									</span>
+								</div>
+							` : ''}
+							${!opp.is_event && opp.salary_min ? `
+								<div style="color: #10b981; font-weight: 600;">от ${opp.salary_min.toLocaleString()} ₽</div>
+							` : ''}
+							<div style="margin: 10px 0;">
+								<span class="badge bg-primary">${opp.type}</span>
+							</div>
+							<a href="${opp.is_event ? '/event/' + opp.id : '/opportunity/' + opp.id}" class="btn btn-sm btn-primary w-100">Подробнее</a>
+						</div>
+					`);
+                    
+                    markers.push(marker);
+                }
+            });
+            
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+        
+		function updateList(opportunities) {
+			const listElement = document.getElementById('vacanciesList');
+			const isLoggedIn = {{ 'true' if current_user else 'false' }};
+			
+			if (opportunities.length === 0) return;
+			
+			listElement.innerHTML = opportunities.map(opp => `
+				<div class="vacancy-card" onclick="location.href='${opp.is_event ? '/event/' + opp.id : '/opportunity/' + opp.id}'">
+					<div class="d-flex justify-content-between align-items-start">
+						<div style="flex: 1;">
+							<h5 class="mb-2">
+								${opp.is_event ? '<i class="fas fa-calendar-alt text-danger me-2"></i>' : ''}
+								${opp.title}
+							</h5>
+							<p class="text-muted mb-2">
+								<i class="fas ${opp.is_event ? 'fa-building' : 'fa-building'}"></i> ${opp.company}
+							</p>
+							${opp.is_event && opp.event_date ? `
+								<p class="mb-2">
+									<i class="fas fa-clock me-1 text-success"></i> <strong>${opp.event_date}</strong>
+									<span class="badge ${opp.is_online ? 'bg-info' : 'bg-secondary'} ms-2">
+										<i class="fas ${opp.is_online ? 'fa-wifi' : 'fa-building'} me-1"></i>
+										${opp.is_online ? 'Онлайн' : 'Очно'}
+									</span>
+								</p>
+							` : ''}
+							<p class="mb-2">${opp.description ? opp.description.substring(0, 100) + '...' : 'Описание не указано'}</p>
+							<div class="mt-2">
+								<span class="badge ${opp.type === 'Стажировка' ? 'bg-success' : (opp.type === 'Мероприятие' ? 'bg-danger' : (opp.type === 'Менторская программа' ? 'bg-warning text-dark' : 'bg-primary'))} me-1">
+									${opp.type}
+								</span>
+								${!opp.is_event ? `
+								<span class="badge ${opp.work_format === 'Удаленно' ? 'bg-info' : (opp.work_format === 'В офисе' ? 'bg-secondary' : 'bg-warning text-dark')}">
+									<i class="fas ${opp.work_format === 'Удаленно' ? 'fa-wifi' : (opp.work_format === 'В офисе' ? 'fa-building' : 'fa-exchange-alt')} me-1"></i>
+									${opp.work_format || 'Не указан'}
+								</span>
+								` : ''}
+								${opp.salary_min ? `<span class="badge bg-success">от ${opp.salary_min.toLocaleString()} ₽</span>` : ''}
+							</div>
+							<div class="mt-2">
+								${opp.tags.map(tag => `<span class="skill-tag">${escapeHtml(tag)}</span>`).join('')}
+							</div>
+						</div>
+						<i class="fas fa-chevron-right text-primary" style="margin-left: 10px;"></i>
+					</div>
+				</div>
+			`).join('');
+		}
+        
+        function updateCount(count) {
+            document.getElementById('countNumber').textContent = count;
+        }
+        
+        function resetAllFilters() {
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterFormat').value = '';
+            document.getElementById('filterSalary').value = '';
+            document.getElementById('filterCity').value = '';
+            loadVacancies();
+        }
+        
+		document.getElementById('filterForm').addEventListener('submit', async (e) => {
+			e.preventDefault();
+			
+			const filters = {
+				type: document.getElementById('filterType').value,
+				format: document.getElementById('filterFormat').value,
+				min_salary: document.getElementById('filterSalary').value,
+				city: document.getElementById('filterCity').value,
+				event_format: document.getElementById('filterEventFormat').value  // ДОБАВЛЯЕМ
+			};
+			
+			await loadVacancies(filters);
+		});
+        
+        document.getElementById('resetFilters').addEventListener('click', resetAllFilters);
+        document.getElementById('showAllVacancies').addEventListener('click', () => {
+            resetAllFilters();
+            map.setView([55.7558, 37.6173], 10);
+        });
+        
+		// ========== ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ ЦВЕТА МАРКЕРА ==========
+
+		// Функция для получения иконки по типу
+		function getIconForType(type, work_format) {
+			if (type === 'Стажировка') return 'fa-graduation-cap';
+			if (type === 'Менторская программа') return 'fa-chalkboard-user';
+			if (type === 'Мероприятие') return 'fa-calendar-alt';
+			if (work_format === 'Удаленно' || work_format === 'REMOTE') return 'fa-wifi';
+			if (work_format === 'Гибрид' || work_format === 'HYBRID') return 'fa-exchange-alt';
+			return 'fa-building';
+		}
+
+		// Функция для обновления цвета маркера на карте
+		async function updateMarkerColor(opportunityId, isFavorite) {
+			// Находим маркер по ID
+			const markerIndex = markers.findIndex(m => m.opportunityId === opportunityId);
+			if (markerIndex === -1) return;
+			
+			const marker = markers[markerIndex];
+			const opp = opportunitiesData.find(o => o.id === opportunityId);
+			if (!opp) return;
+			
+			// Определяем новый цвет в зависимости от типа и статуса избранного
+			let color = '#667eea'; // цвет по умолчанию
+			
+			if (opp.type === 'Стажировка') {
+				color = '#28a745';
+			} else if (opp.type === 'Менторская программа') {
+				color = '#ffc107';
+			} else if (opp.type === 'Мероприятие') {
+				color = '#dc3545';
+			}
+			
+			// Если в избранном, делаем золотым
+			if (isFavorite) {
+				color = '#ffc107';
+			}
+			
+			// Обновляем иконку маркера
+			const newIcon = L.divIcon({
+				html: `<div style="background: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: all 0.2s;">
+					<i class="fas ${getIconForType(opp.type, opp.work_format)}" style="color: white; font-size: 14px;"></i>
+				</div>`,
+				className: 'custom-marker',
+				iconSize: [32, 32],
+				popupAnchor: [0, -16]
+			});
+			
+			marker.setIcon(newIcon);
+		}
+
+		document.addEventListener('DOMContentLoaded', function() {
+			initCustomTooltip();
+			initMap();
+		});
+        document.addEventListener('DOMContentLoaded', function() {
+            initCustomTooltip();
+            initMap();
+        });
+        
+        // ========== ФУНКЦИИ ДЛЯ ИЗБРАННОГО НЕАВТОРИЗОВАННЫХ ==========
+        
+        // Показать избранное для неавторизованных
+        async function showFavoritesModal() {
+            const favorites = getFavoritesFromLocal();
+            const modalBody = document.getElementById('favoritesModalBody');
+            
+            if (favorites.length === 0) {
+                modalBody.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                        <p>У вас пока нет избранных вакансий</p>
+                        <p class="text-muted small">Добавляйте вакансии в избранное, нажимая кнопку "В избранное" на странице вакансии</p>
+                    </div>
+                `;
+                new bootstrap.Modal(document.getElementById('favoritesModal')).show();
+                return;
+            }
+            
+            modalBody.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Загрузка...</p></div>';
+            new bootstrap.Modal(document.getElementById('favoritesModal')).show();
+            
+            try {
+                const response = await fetch('/api/opportunities');
+                const allOpportunities = await response.json();
+                const favoritesList = allOpportunities.filter(opp => favorites.includes(opp.id));
+                
+                if (favoritesList.length === 0) {
+                    modalBody.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                            <p>Избранные вакансии не найдены</p>
+                            <p class="text-muted small">Возможно, они были удалены</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                modalBody.innerHTML = favoritesList.map(opp => `
+                    <div class="vacancy-card mb-3" style="cursor: pointer;" onclick="location.href='${opp.is_event ? '/event/' + opp.id : '/opportunity/' + opp.id}'">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div style="flex: 1;">
+                                <h5>
+                                    ${opp.is_event ? '<i class="fas fa-calendar-alt text-danger me-2"></i>' : ''}
+                                    ${opp.title}
+                                </h5>
+                                <p class="text-muted mb-2">${opp.company}</p>
+                                ${opp.is_event && opp.event_date ? `<p class="mb-2"><strong>${opp.event_date}</strong></p>` : ''}
+                                <p class="mb-2">${opp.description ? opp.description.substring(0, 100) + '...' : 'Описание не указано'}</p>
+                                <div class="mt-2">
+                                    <span class="badge bg-primary">${opp.type}</span>
+                                    ${opp.salary_min ? `<span class="badge bg-success">от ${opp.salary_min.toLocaleString()} ₽</span>` : ''}
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); removeFromFavorites(${opp.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                updateFavoritesCount();
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                modalBody.innerHTML = `
+                    <div class="text-center py-5 text-danger">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Ошибка загрузки избранного</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Обновить счетчик избранного в кнопке
+        function updateFavoritesCount() {
+            const favorites = getFavoritesFromLocal();
+            const badge = document.getElementById('favoritesCountBadge');
+            if (badge) {
+                if (favorites.length > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = favorites.length;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+		// ========== ВСТАВЬТЕ СЮДА ФУНКЦИЮ addToFavoritesLocal ==========
+        // Добавить в избранное (для неавторизованных)
+        function addToFavoritesLocal(opportunityId, buttonElement) {
+            let favorites = getFavoritesFromLocal();
+            
+            // Проверяем, есть ли уже в избранном
+            if (favorites.includes(opportunityId)) {
+                // Если уже есть - удаляем
+                const index = favorites.indexOf(opportunityId);
+                favorites.splice(index, 1);
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+                updateFavoritesCount();
+                
+                // Обновляем цвет маркера на карте (удаляем из избранного - цвет становится обычным)
+                updateMarkerColorById(opportunityId, false);
+                
+                // Обновляем текст кнопки
+                if (buttonElement) {
+                    buttonElement.innerHTML = '<i class="far fa-star"></i> В избранное';
+                    buttonElement.classList.remove('btn-warning');
+                    buttonElement.classList.add('btn-outline-warning');
+                }
+                
+                alert('❌ Удалено из избранного');
+            } else {
+                // Добавляем
+                favorites.push(opportunityId);
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+                updateFavoritesCount();
+                
+                // Обновляем цвет маркера на карте (добавляем в избранное - цвет становится золотым)
+                updateMarkerColorById(opportunityId, true);
+                
+                // Обновляем текст кнопки
+                if (buttonElement) {
+                    buttonElement.innerHTML = '<i class="fas fa-star"></i> В избранном';
+                    buttonElement.classList.remove('btn-outline-warning');
+                    buttonElement.classList.add('btn-warning');
+                }
+                
+                alert('✅ Добавлено в избранное! Маркер на карте стал золотым.');
+            }
+        }
+		// Функция для обновления цвета маркера на карте
+        function updateMarkerColorById(opportunityId, isFavorite) {
+            // Проверяем, есть ли маркеры на карте
+            if (!markers || markers.length === 0) return;
+            
+            // Находим маркер по ID
+            const markerIndex = markers.findIndex(m => m.opportunityId === opportunityId);
+            if (markerIndex === -1) return;
+            
+            const marker = markers[markerIndex];
+            const opp = opportunitiesData.find(o => o.id === opportunityId);
+            if (!opp) return;
+            
+            // Функция для получения иконки по типу
+            function getIconForType(type, work_format) {
+                if (type === 'Стажировка') return 'fa-graduation-cap';
+                if (type === 'Менторская программа') return 'fa-chalkboard-user';
+                if (type === 'Мероприятие') return 'fa-calendar-alt';
+                if (work_format === 'Удаленно' || work_format === 'REMOTE') return 'fa-wifi';
+                if (work_format === 'Гибрид' || work_format === 'HYBRID') return 'fa-exchange-alt';
+                return 'fa-building';
+            }
+            
+            // Определяем цвет
+            let color;
+            if (isFavorite) {
+                color = '#ffc107'; // Золотой для избранного
+            } else {
+                // Обычный цвет по типу
+                if (opp.type === 'Стажировка') {
+                    color = '#28a745';
+                } else if (opp.type === 'Менторская программа') {
+                    color = '#ffc107';
+                } else if (opp.type === 'Мероприятие') {
+                    color = '#dc3545';
+                } else {
+                    color = '#667eea';
+                }
+            }
+            
+            // Обновляем иконку маркера
+            const newIcon = L.divIcon({
+                html: `<div style="background: ${color}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: all 0.2s;">
+                    <i class="fas ${getIconForType(opp.type, opp.work_format)}" style="color: white; font-size: 14px;"></i>
+                </div>`,
+                className: 'custom-marker',
+                iconSize: [32, 32],
+                popupAnchor: [0, -16]
+            });
+            
+            marker.setIcon(newIcon);
+            
+            // Обновляем данные в opportunitiesData
+            const oppIndex = opportunitiesData.findIndex(o => o.id === opportunityId);
+            if (oppIndex !== -1) {
+                opportunitiesData[oppIndex].is_favorite = isFavorite;
+            }
+        }
+        
+        // Удалить из избранного
+        function removeFromFavorites(opportunityId) {
+            let favorites = getFavoritesFromLocal();
+            const index = favorites.indexOf(opportunityId);
+            if (index !== -1) {
+                favorites.splice(index, 1);
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+                updateFavoritesCount();
+                showFavoritesModal();
+            }
+        }
+        
+        // Очистить всё избранное
+        function clearAllFavorites() {
+            if (confirm('Вы уверены, что хотите удалить все избранные вакансии?')) {
+                localStorage.setItem('favorites', '[]');
+                updateFavoritesCount();
+                showFavoritesModal();
+            }
+        }
+        
+        // Обновляем счетчик при загрузке страницы (добавляем еще один listener)
+        updateFavoritesCount();
+        
+    </script>
+    
+    <!-- Модальное окно избранного для неавторизованных -->
+    <div class="modal fade" id="favoritesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="fas fa-star me-2"></i>Мои избранные вакансии
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="favoritesModalBody">
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-2">Загрузка...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-danger" onclick="clearAllFavorites()">
+                        <i class="fas fa-trash"></i> Очистить всё
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

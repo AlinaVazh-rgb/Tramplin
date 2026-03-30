@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ event.title }} - Трамплин</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: #28a745;
+            border: none;
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        .btn-warning {
+            background: #ffc107;
+            border: none;
+            color: #856404;
+        }
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+        .skill-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .navbar {
+            background: white !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .event-info {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .participant-item {
+            background: white;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .participant-item:hover {
+            background: #f8f9fa;
+            transform: translateX(3px);
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 140px;
+        }
+        @media (max-width: 768px) {
+            .action-buttons .btn {
+                min-width: 100%;
+            }
+        }
+        .badge-online {
+            background: #17a2b8;
+            color: white;
+        }
+        .badge-offline {
+            background: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-rocket me-2"></i>Трамплин
+            </a>
+            <div class="ms-auto">
+                {% if current_user %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle"></i> {{ current_user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if current_user.role == 'seeker' %}
+                        <li><a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}"><i class="fas fa-user me-2"></i> Мой профиль</a></li>
+                        <li><a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}#responses"><i class="fas fa-paper-plane me-2"></i> Мои отклики</a></li>
+                        <li><a class="dropdown-item" href="/profile/seeker/{{ current_user.id }}#favorites"><i class="fas fa-heart me-2"></i> Избранное</a></li>
+                        {% elif current_user.role == 'employer' %}
+                        <li><a class="dropdown-item" href="/profile/employer/{{ current_user.id }}"><i class="fas fa-building me-2"></i> Моя компания</a></li>
+                        <li><a class="dropdown-item" href="/profile/employer/{{ current_user.id }}#vacancies"><i class="fas fa-briefcase me-2"></i> Мои вакансии</a></li>
+                        <li><a class="dropdown-item" href="/profile/employer/{{ current_user.id }}#responses"><i class="fas fa-users me-2"></i> Отклики</a></li>
+                        {% elif current_user.role == 'curator' %}
+                        <li><a class="dropdown-item" href="/curator/dashboard"><i class="fas fa-shield-alt me-2"></i> Панель модератора</a></li>
+                        {% elif current_user.role == 'admin' %}
+                        <li><a class="dropdown-item" href="/admin/dashboard"><i class="fas fa-user-shield me-2"></i> Админ-панель</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/logout"><i class="fas fa-sign-out-alt me-2"></i> Выйти</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <a href="/login" class="btn btn-outline-primary me-2"><i class="fas fa-sign-in-alt"></i> Войти</a>
+                <a href="/register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Регистрация</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h2>{{ event.title }}</h2>
+                        <h5 class="text-muted">{{ event.employer.company_name }}</h5>
+                        
+                        <div class="mt-3">
+                            <span class="badge bg-danger">{{ event.type.value }}</span>
+                            {% if event.is_online %}
+                            <span class="badge badge-online"><i class="fas fa-wifi me-1"></i> Онлайн</span>
+                            {% else %}
+                            <span class="badge badge-offline"><i class="fas fa-building me-1"></i> Очно</span>
+                            {% endif %}
+                            <span class="badge bg-info">
+                                <i class="fas fa-calendar me-1"></i> {{ event.event_date.strftime('%d.%m.%Y') }}
+                            </span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-users me-1"></i> Участников: {{ participants_count }}
+                            </span>
+                        </div>
+                        
+                        <hr>
+                        
+                        <h5>Описание:</h5>
+                        <p>{{ event.description }}</p>
+                        
+                        <div class="event-info">
+                            <h6><i class="fas fa-calendar-alt me-2"></i>Информация о мероприятии</h6>
+                            <p><strong>Дата проведения:</strong> {{ event.event_date.strftime('%d.%m.%Y') }}</p>
+                            <p><strong>Формат:</strong> {% if event.is_online %}Онлайн{% else %}Очно{% endif %}</p>
+                            <p><strong>Место:</strong> {{ event.location }}</p>
+                        </div>
+                        
+                        <h5>Теги:</h5>
+                        <div>
+                            {% for tag in tags %}
+                            <span class="skill-tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Кнопки действий -->
+                        <div class="action-buttons">
+                            {% if current_user and current_user.role == 'seeker' %}
+                                {% if is_registered %}
+                                    <button class="btn btn-warning" id="unregisterEventBtn" onclick="unregisterFromEvent()">
+                                        <i class="fas fa-times-circle"></i> Отменить регистрацию
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-success" id="registerEventBtn" onclick="registerForEvent()">
+                                        <i class="fas fa-calendar-check"></i> Зарегистрироваться
+                                    </button>
+                                {% endif %}
+                                <button class="btn btn-outline-primary" onclick="saveToFavorites()">
+                                    <i class="far fa-bookmark"></i> В избранное
+                                </button>
+                                <button class="btn btn-outline-success" onclick="openChatWithEmployer({{ event.employer.user_id }}, '{{ event.employer.company_name }}')">
+                                    <i class="fas fa-comment"></i> Написать организатору
+                                </button>
+                            {% elif current_user and current_user.role == 'employer' and current_user.employer_profile.id == event.employer_id %}
+                                <a href="/profile/employer/{{ current_user.id }}#events" class="btn btn-outline-primary">
+                                    <i class="fas fa-calendar-alt"></i> Мои мероприятия
+                                </a>
+                                <button class="btn btn-outline-info" onclick="toggleParticipantsList()">
+                                    <i class="fas fa-list"></i> Список участников ({{ participants_count }})
+                                </button>
+                            {% elif not current_user %}
+                                <a href="/login" class="btn btn-primary">
+                                    <i class="fas fa-sign-in-alt"></i> Войдите, чтобы зарегистрироваться
+                                </a>
+                            {% endif %}
+                        </div>
+                        
+                        <div id="eventRegistrationStatus" class="mt-3"></div>
+                        <div id="responseMessage" class="mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><i class="fas fa-map-marker-alt me-2"></i> {{ event.location }}</p>
+                        <p><i class="fas fa-calendar me-2"></i> Опубликовано: {{ event.published_at.strftime('%d.%m.%Y') }}</p>
+                        <p><i class="fas fa-calendar-check me-2 text-success"></i> <strong>Дата мероприятия:</strong> {{ event.event_date.strftime('%d.%m.%Y') }}</p>
+                        <p><i class="fas fa-eye me-2"></i> Просмотров: {{ event.views }}</p>
+                        {% if contacts %}
+                        <hr>
+                        <h6>Контакты:</h6>
+                        {% if contacts.email %}
+                        <p><i class="fas fa-envelope me-2"></i> {{ contacts.email }}</p>
+                        {% endif %}
+                        {% if contacts.phone %}
+                        <p><i class="fas fa-phone me-2"></i> {{ contacts.phone }}</p>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if participants and participants|length > 0 %}
+                <div class="card mt-3" id="participantsList" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-users me-2"></i>Участники ({{ participants|length }})</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        {% for p in participants %}
+                        <div class="participant-item">
+                            <strong>{{ p.full_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ p.university }}</small>
+                            <br>
+                            <small class="text-muted">Зарегистрирован: {{ p.registered_at }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const eventId = {{ event.id }};
+        const currentUser = {{ 'true' if current_user else 'false' }};
+        const currentUserId = {{ current_user.id if current_user else 'null' }};
+        const isRegistered = {{ 'true' if is_registered else 'false' }};
+        
+        function toggleParticipantsList() {
+            const participantsDiv = document.getElementById('participantsList');
+            if (participantsDiv) {
+                participantsDiv.style.display = participantsDiv.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
+        async function registerForEvent() {
+            if (!currentUser) {
+                alert('Пожалуйста, войдите в систему');
+                window.location.href = '/login';
+                return;
+            }
+            
+            const registerBtn = document.getElementById('registerEventBtn');
+            if (!registerBtn) return;
+            
+            const originalText = registerBtn.innerHTML;
+            registerBtn.disabled = true;
+            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Регистрация...';
+            
+            try {
+                const response = await fetch(`/api/event/register/${eventId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    let errorMsg = result.detail || 'Не удалось зарегистрироваться';
+                    alert('❌ Ошибка: ' + errorMsg);
+                    registerBtn.disabled = false;
+                    registerBtn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('❌ Ошибка соединения: ' + error.message);
+                registerBtn.disabled = false;
+                registerBtn.innerHTML = originalText;
+            }
+        }
+        
+        async function unregisterFromEvent() {
+            if (!confirm('Вы уверены, что хотите отменить регистрацию?')) return;
+            
+            const unregisterBtn = document.getElementById('unregisterEventBtn');
+            if (!unregisterBtn) return;
+            
+            const originalText = unregisterBtn.innerHTML;
+            unregisterBtn.disabled = true;
+            unregisterBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Отмена...';
+            
+            try {
+                const response = await fetch(`/api/event/unregister/${eventId}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('❌ Ошибка: ' + (result.detail || 'Не удалось отменить регистрацию'));
+                    unregisterBtn.disabled = false;
+                    unregisterBtn.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('❌ Ошибка соединения: ' + error.message);
+                unregisterBtn.disabled = false;
+                unregisterBtn.innerHTML = originalText;
+            }
+        }
+        
+		async function saveToFavorites() {
+			if (!currentUser) {
+				alert('Пожалуйста, войдите в систему');
+				window.location.href = '/login';
+				return;
+			}
+			
+			// Получаем seeker_profile_id
+			let seekerId = {{ seeker_profile_id if seeker_profile_id else 'null' }};
+			
+			if (!seekerId) {
+				alert('Профиль соискателя не найден. Пожалуйста, заполните профиль.');
+				window.location.href = '/profile/seeker/' + currentUserId;
+				return;
+			}
+			
+			try {
+				const response = await fetch('/api/favorite/toggle', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({
+						opportunity_id: eventId,
+						seeker_id: seekerId
+					})
+				});
+				
+				const result = await response.json();
+				
+				if (response.ok) {
+					alert(result.message);
+				} else {
+					alert('❌ Ошибка: ' + (result.detail || 'Неизвестная ошибка'));
+				}
+			} catch (error) {
+				console.error('Ошибка:', error);
+				alert('❌ Ошибка соединения: ' + error.message);
+			}
+		}
+        
+        function openChatWithEmployer(employerUserId, companyName) {
+            if (!currentUser || !currentUserId) {
+                alert('Пожалуйста, войдите в систему');
+                window.location.href = '/login';
+                return;
+            }
+            
+            localStorage.setItem('openChatWith', JSON.stringify({
+                user_id: employerUserId,
+                username: companyName,
+                role: 'employer'
+            }));
+            
+            if ({{ current_user.role if current_user else 'null' }} === 'seeker') {
+                window.location.href = '/profile/seeker/' + currentUserId + '#chats';
+            } else {
+                window.location.href = '/profile/employer/' + currentUserId + '#chats';
+            }
+        }
+    </script>
+</body>
+</html>
